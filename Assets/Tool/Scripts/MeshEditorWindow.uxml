@@ -1,0 +1,9 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/Tool/Scripts/MeshEditorWindow.uss?fileID=7433441132597879392&amp;guid=67eb18d5a0c5f804d8ad34d681e73cd6&amp;type=3#MeshEditorWindow"/>
+    <ui:Label text="Mesh Editor" class="custom-label"/>
+    <ui:VisualElement style="flex-grow: 1; flex-direction: row; flex-wrap: wrap;">
+        <ui:Button text="Red" name="red" style="height: 41px; width: 81px; background-color: rgb(226, 65, 65); -unity-text-align: middle-center;"/>
+        <ui:Button text="Blue" name="blue" style="height: 41px; width: 81px; background-color: rgb(65, 131, 226);"/>
+        <ui:Button text="Green" name="green" style="height: 41px; width: 81px; background-color: rgb(65, 226, 90);"/>
+    </ui:VisualElement>
+</ui:UXML>
