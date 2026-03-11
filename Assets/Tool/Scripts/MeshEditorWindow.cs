@@ -9,13 +9,34 @@ public class MeshEditorWindow : EditorWindow
 {
     [SerializeField] private VisualTreeAsset m_VisualTreeAsset = default;
     [SerializeField] private Mesh mesh;
+    [SerializeField] private Material brushMaterial;
 
-    PreviewRenderUtility _preview;
+    private float[][][] _valueField;
+    private Vector3Int _fieldSize;
+
+    private PreviewRenderUtility _preview;
     private Material _material;
-    MeshCollider _collider;
+    private MeshCollider _collider;
+    private Matrix4x4 _meshMatrix;
+    
+    // Brush stuff
+    private Mesh _rayPointMesh;
+    private bool _rayCollided = false;
+    private Vector3 _rayCollidedPos = Vector3.zero;
+    private Vector3 _minRayCollidedScale = new Vector3(0.1f, 0.1f, 0.1f);
+    private Vector3 _maxRayCollidedScale = new Vector3(1f, 1f, 1f);
+    private Vector3 _rayCollidedScale = new Vector3(0.1f, 0.1f, 0.1f);
+    private Matrix4x4 _rayCollidedMatrix;
+    
+    private float _brushSize;
     
     private Vector2 _rotation = new Vector2(20, 30);
     private float _zoom = 5f;
+
+    private Slider _brushSizeSlider;
+    private Vector3IntField _fieldSizeField;
+
+    private VisualElement _previewContainer;
     
     private Button _redButton;
     private Button _blueButton;
@@ -23,6 +44,7 @@ public class MeshEditorWindow : EditorWindow
 
     void OnEnable()
     {
+        // preview window setup
         _preview = new PreviewRenderUtility();
 
         _preview.camera.transform.position = new Vector3(0, 0, -5);
@@ -35,13 +57,34 @@ public class MeshEditorWindow : EditorWindow
         _preview.lights[0].transform.rotation = Quaternion.Euler(40f, 40f, 0);
         _preview.lights[1].intensity = 1.4f;
         
-        _material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-        _material.color = Color.red;
+        // Mesh position based on bounds
+        Vector3 meshPos = -mesh.bounds.center;
+        _meshMatrix = Matrix4x4.TRS(meshPos, Quaternion.identity, Vector3.one);
+        
+        // materials
+        _material = new Material(Shader.Find("Universal Render Pipeline/Lit")) {
+            color = Color.red
+        };
+
+        // Brush setup
+        _rayPointMesh = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
+        _rayCollidedMatrix = Matrix4x4.TRS(_rayCollidedPos, Quaternion.identity, _rayCollidedScale);
+        
+        // if not mesh display default
+        if (mesh == null) {
+            mesh = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
+        }
     }
 
     void OnDisable()
     {
         _preview.Cleanup();
+        
+        DestroyImmediate(_material);
+        
+        _brushSizeSlider.UnregisterValueChangedCallback(OnBrushSizeChanged);
+        _fieldSizeField.UnregisterValueChangedCallback(OnFieldSizeChanged);
+        
         if (_redButton != null)
             _redButton.clicked -= OnClickRed;
         if (_blueButton != null)
@@ -55,6 +98,10 @@ public class MeshEditorWindow : EditorWindow
     {
         MeshEditorWindow wnd = GetWindow<MeshEditorWindow>();
         wnd.titleContent = new GUIContent("Mesh Editor");
+    }
+
+    private void Update() {
+        Repaint();
     }
 
     public void CreateGUI()
@@ -77,28 +124,39 @@ public class MeshEditorWindow : EditorWindow
         if (_greenButton != null)
             _greenButton.clicked += OnClickGreen;
         
+        _brushSizeSlider = root.Q<Slider>("brush_size");
+        _brushSizeSlider.RegisterValueChangedCallback(OnBrushSizeChanged);
+        _brushSize = _brushSizeSlider.value;
+
+        _fieldSizeField = root.Q<Vector3IntField>("field_size");
+        _fieldSizeField.RegisterValueChangedCallback(OnFieldSizeChanged);
+        _fieldSize = _fieldSizeField.value;
+        
+        _previewContainer = root.Q<VisualElement>("preview_container");
+        
         var preview = new IMGUIContainer(DrawPreview);
-        rootVisualElement.Add(preview);
+        _previewContainer.Add(preview);
     }
 
     private void DrawPreview()
     {
-        Rect r = GUILayoutUtility.GetRect(400, 400);
+        Rect r = GUILayoutUtility.GetRect(600, 400);
         GUI.Box(r, "Preview");
         
         _preview.BeginPreview(r, GUIStyle.none);
-        // if (mesh != null)
-        //     _preview.DrawMesh(mesh, Matrix4x4.identity, _material, 0);
-
-        mesh = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
-        _preview.DrawMesh(Resources.GetBuiltinResource<Mesh>("Cube.fbx"), Matrix4x4.identity, _material, 0);
+        
+        _preview.DrawMesh(mesh, _meshMatrix, _material, 0);
 
         UpdateCamera(r);
-        HandleClick(r);
+        HandleMouse(r);
         UpdateCollider();
 
+        if (_rayCollided) {
+            _preview.DrawMesh(_rayPointMesh, _rayCollidedMatrix, brushMaterial, 0);
+        }
+        
         _preview.camera.Render();
-
+        
         Texture result = _preview.EndPreview();
         GUI.DrawTexture(r, result);
     }
@@ -130,30 +188,29 @@ public class MeshEditorWindow : EditorWindow
         _preview.camera.transform.LookAt(Vector3.zero);
     }
     
-    void HandleClick(Rect r)
+    void HandleMouse(Rect r)
     {
         Event e = Event.current;
-        if (r.Contains(e.mousePosition) && e.type == EventType.MouseDown && e.button == 0)
+        if (r.Contains(e.mousePosition))
         {
-            Ray ray = PreviewRay(r, e.mousePosition);
-            Debug.DrawRay(ray.origin, ray.direction * 100, Color.red, 2);
-            //Debug.Log(ray.direction);
+            Ray ray = GetRay(r, e.mousePosition);
 
             if (_collider.Raycast(ray, out RaycastHit hit, 100f))
             {
                 Vector3 p = hit.point;
-                
-                Debug.Log(p);
+                _rayCollidedPos = p;
+                _rayCollidedScale = Vector3.Lerp(_minRayCollidedScale, _maxRayCollidedScale, (_brushSize - _brushSizeSlider.lowValue) / (_brushSizeSlider.highValue - _brushSizeSlider.lowValue) );
+                _rayCollidedMatrix = Matrix4x4.TRS(_rayCollidedPos, Quaternion.identity, _rayCollidedScale);
+                _rayCollided = true;
+                if (e.type == EventType.MouseDown && e.button == 0) {
+                    e.Use();
+                }
+                //Debug.Log(p);
+            }
+            else {
+                _rayCollided = false;
             }
             
-            // if (Physics.Raycast(ray, out RaycastHit hit))
-            // {
-            //     Vector3 p = hit.point;
-            //
-            //     Debug.Log(p);
-            // }
-            
-            e.Use();
         }
     }
     
@@ -163,13 +220,14 @@ public class MeshEditorWindow : EditorWindow
         {
             GameObject go = new GameObject("PreviewCollider");
             go.hideFlags = HideFlags.HideAndDontSave;
+            go.transform.position = _meshMatrix.GetPosition();
             _collider = go.AddComponent<MeshCollider>();
         }
 
         _collider.sharedMesh = mesh;
     }
     
-    Ray PreviewRay(Rect rect, Vector2 mousePos)
+    Ray GetRay(Rect rect, Vector2 mousePos)
     {
         Vector2 local = mousePos - rect.position;
 
@@ -184,6 +242,14 @@ public class MeshEditorWindow : EditorWindow
         return _preview.camera.ScreenPointToRay(screenPoint);
     }
 
+    private void OnBrushSizeChanged(ChangeEvent<float> evt) {
+        _brushSize = evt.newValue;
+    }
+    
+    private void OnFieldSizeChanged(ChangeEvent<Vector3Int> evt) {
+        _fieldSize = evt.newValue;
+    }
+    
     public void OnClickRed()
     {
         _material.color = Color.red;
