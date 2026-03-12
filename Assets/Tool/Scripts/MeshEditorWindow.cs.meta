@@ -6,7 +6,7 @@ MonoImporter:
   defaultReferences:
   - m_ViewDataDictionary: {instanceID: 0}
   - m_VisualTreeAsset: {fileID: 9197481963319205126, guid: c4540990be7449246ae7b71400b12233, type: 3}
-  - mesh: {fileID: 4300000, guid: 7936fd6b9e2dbee4eb4364464b52c621, type: 2}
+  - mesh: {fileID: 4300000, guid: 434d4d9c0a08c3c47bd2b8336fdfa3ec, type: 2}
   - brushMaterial: {fileID: 2100000, guid: 182916f0c6c15674a97b26f14e4bd007, type: 2}
   executionOrder: 0
   icon: {instanceID: 0}

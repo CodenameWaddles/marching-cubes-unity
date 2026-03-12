@@ -5,13 +5,13 @@
         <ui:Label text="Mesh generation" style="font-size: 24px;"/>
         <ui:VisualElement style="flex-grow: 1; flex-direction: row;">
             <ui:Button text="Generate mesh" name="generate"/>
-            <ui:Vector3IntField label="Field Size" name="field_size" value="3,2,3" style="flex-direction: column;"/>
+            <ui:Vector3IntField label="Field Size" name="field_size" value="10,10,10" style="flex-direction: column;"/>
         </ui:VisualElement>
     </ui:VisualElement>
     <ui:VisualElement name="preview_container" style="flex-grow: 1; flex-direction: row;">
         <ui:VisualElement name="editor_settings" style="flex-grow: 1; flex-direction: column; flex-wrap: wrap; height: auto; background-color: rgb(75, 75, 75); width: 30%; max-width: 30%;">
             <ui:Label text="Editor settings" style="font-size: 24px;"/>
-            <ui:VisualElement style="flex-grow: 1; flex-direction: row; flex-wrap: wrap;">
+            <ui:VisualElement name="settings" style="flex-grow: 1; flex-direction: row; flex-wrap: wrap;">
                 <ui:Button text="Red" name="red" style="height: 41px; width: 81px; background-color: rgb(226, 65, 65); -unity-text-align: middle-center;"/>
                 <ui:Button text="Blue" name="blue" style="height: 41px; width: 81px; background-color: rgb(65, 131, 226);"/>
                 <ui:Button text="Green" name="green" style="height: 41px; width: 81px; background-color: rgb(65, 226, 90);"/>

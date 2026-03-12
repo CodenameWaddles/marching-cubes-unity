@@ -1,49 +1,56 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace MarchingCubes.Scripts
 {
-    public class MarchingCubeChunk : MonoBehaviour
+    public class MarchingCubesSection : MonoBehaviour
     {
-        [Header("Marching Cubes values")]
-        [SerializeField, Range(4, 48)] public int resolution = 16;
-        [SerializeField] public float chunkSize = 32f;
-        [SerializeField] public float surfaceLevel = 1f;
-        [SerializeField] public Vector3 sampleSpacePosition = Vector3.zero;
+        public Vector3Int sectionSize = new Vector3Int(8, 8, 8);
+        public float step = 1f;
+        public float surfaceLevel = 0f;
+        public Vector3 sampleSpacePosition = Vector3.zero;
+        public Density.DensityFunction densityFunction = Density.PlaneDensity;
         
         private List<Vector3> _vertices = new List<Vector3>();
         private List<int> _faces = new List<int>();
         
-        void Start()
+        private Mesh _mesh;
+        
+        public List<Vector3> Vertices  => _vertices;
+        public List<int> Faces => _faces;
+        public Mesh Mesh => _mesh;
+        
+        public void BuildMesh()
         {
-            RebuildMesh();
-        }
+            if(_mesh != null)
+                Clear();
+            
+            MarchCubes(densityFunction);
+            _mesh = new Mesh();
+            _mesh.indexFormat = IndexFormat.UInt32;
+            _mesh.vertices = _vertices.ToArray();
+            _mesh.triangles = _faces.ToArray();
 
-        public void RebuildMesh()
+            _mesh.RecalculateNormals();
+            _mesh.RecalculateBounds();
+            
+        }
+        
+        public void Clear()
         {
             _vertices.Clear();
             _faces.Clear();
-            
-            MarchCubes(DensityFunction);
-            Mesh mesh = new Mesh();
-            mesh.vertices = _vertices.ToArray();
-            mesh.triangles = _faces.ToArray();
-
-            mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
-            MeshFilter meshFilter = gameObject.GetComponent<MeshFilter>();
-            meshFilter.mesh = mesh;
+            _mesh.Clear();
         }
 
         void MarchCubes(Density.DensityFunction function)
         {
-            float step = chunkSize / resolution;
-            
-            for (int i = 0; i < resolution; i++)
+            for (int i = 0; i < sectionSize.x; i++)
             {
-                for (int j = 0; j < resolution; j++)
+                for (int j = 0; j < sectionSize.y; j++)
                 {
-                    for (int k = 0; k < resolution; k++)
+                    for (int k = 0; k < sectionSize.z; k++)
                     {
                         MarchingCubesUtils.Cube cube = new MarchingCubesUtils.Cube
                         {
@@ -98,9 +105,9 @@ namespace MarchingCubes.Scripts
                 int c0 = MarchingCubesData.cornerIndexAFromEdge[MarchingCubesData.TriangleTable[cubeIndex, i + 2]];
                 int c1= MarchingCubesData.cornerIndexBFromEdge[MarchingCubesData.TriangleTable[cubeIndex, i + 2]];
 
-                Vector3 v1 = InterpolateVertices(cube.Corners[a0], cube.Values[a0], cube.Corners[a1], cube.Values[a1]);
-                Vector3 v2 = InterpolateVertices(cube.Corners[b0], cube.Values[b0], cube.Corners[b1], cube.Values[b1]);
-                Vector3 v3 = InterpolateVertices(cube.Corners[c0], cube.Values[c0], cube.Corners[c1], cube.Values[c1]);
+                Vector3 v1 = MarchingCubesUtils.InterpolateVertices(cube.Corners[a0], cube.Values[a0], cube.Corners[a1], cube.Values[a1], surfaceLevel);
+                Vector3 v2 = MarchingCubesUtils.InterpolateVertices(cube.Corners[b0], cube.Values[b0], cube.Corners[b1], cube.Values[b1], surfaceLevel);
+                Vector3 v3 = MarchingCubesUtils.InterpolateVertices(cube.Corners[c0], cube.Values[c0], cube.Corners[c1], cube.Values[c1], surfaceLevel);
                 
                 // Vector3 v1 = (cube.Corners[a0] + cube.Corners[a1]) / 2;
                 // Vector3 v2 = (cube.Corners[b0] + cube.Corners[b1]) / 2;
@@ -119,29 +126,6 @@ namespace MarchingCubes.Scripts
                 _faces.Add(currentIndex + 2);
                 //Debug.Log("face added");
             }
-        }
-
-        Vector3 InterpolateVertices(Vector3 a, float va, Vector3 b, float vb)
-        {
-            float t = (surfaceLevel - va) / (vb - va);
-            return a + t * (b - a);
-        }
-        
-        float DensityFunction(Vector3 position) {
-            //return ChunkManager.Instance.GetDensity(position);
-            
-            float density = position.y;
-            density += position.x/2;
-            // density += ThreeDNoise(position * 4.05f) * 0.25f;
-            // density += ThreeDNoise(position * 2.03f) * 0.5f;
-            // density += ThreeDNoise(position * 1.02f);
-            // density += ThreeDNoise(position * 0.52f) * 2.05f;
-            // density += ThreeDNoise(position * 0.245f) * 4.03f;
-            // density += ThreeDNoise(position * 0.125f) * 8.05f;
-            // density += ThreeDNoise(position * 0.0625f) * 16.03f;
-            // density += ThreeDNoise(position * 0.03126f) * 32.06f;
-            // density += ThreeDNoise(position * 0.015624f) * 64.04f;
-            return density;
         }
     }
 }

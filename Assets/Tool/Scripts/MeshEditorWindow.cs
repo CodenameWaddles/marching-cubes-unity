@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using MarchingCubes.Scripts;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -13,6 +14,8 @@ public class MeshEditorWindow : EditorWindow
 
     private float[][][] _valueField;
     private Vector3Int _fieldSize;
+    private float _surfaceLevel = 0f;
+    private float _step = 1f;
 
     private PreviewRenderUtility _preview;
     private Material _material;
@@ -27,7 +30,6 @@ public class MeshEditorWindow : EditorWindow
     private Vector3 _maxRayCollidedScale = new Vector3(1f, 1f, 1f);
     private Vector3 _rayCollidedScale = new Vector3(0.1f, 0.1f, 0.1f);
     private Matrix4x4 _rayCollidedMatrix;
-    
     private float _brushSize;
     
     private Vector2 _rotation = new Vector2(20, 30);
@@ -41,6 +43,11 @@ public class MeshEditorWindow : EditorWindow
     private Button _redButton;
     private Button _blueButton;
     private Button _greenButton;
+    private Button _generateButton;
+
+    private bool _meshGenerated = false;
+    private GameObject _previewObject;
+    private MarchingCubesSection _marchingCubesSection;
 
     void OnEnable()
     {
@@ -57,10 +64,6 @@ public class MeshEditorWindow : EditorWindow
         _preview.lights[0].transform.rotation = Quaternion.Euler(40f, 40f, 0);
         _preview.lights[1].intensity = 1.4f;
         
-        // Mesh position based on bounds
-        Vector3 meshPos = -mesh.bounds.center;
-        _meshMatrix = Matrix4x4.TRS(meshPos, Quaternion.identity, Vector3.one);
-        
         // materials
         _material = new Material(Shader.Find("Universal Render Pipeline/Lit")) {
             color = Color.red
@@ -70,10 +73,9 @@ public class MeshEditorWindow : EditorWindow
         _rayPointMesh = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
         _rayCollidedMatrix = Matrix4x4.TRS(_rayCollidedPos, Quaternion.identity, _rayCollidedScale);
         
-        // if not mesh display default
-        if (mesh == null) {
-            mesh = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
-        }
+        _previewObject =  new GameObject();
+        _previewObject.hideFlags = HideFlags.HideAndDontSave;
+        _marchingCubesSection = _previewObject.AddComponent<MarchingCubesSection>();
     }
 
     void OnDisable()
@@ -81,6 +83,13 @@ public class MeshEditorWindow : EditorWindow
         _preview.Cleanup();
         
         DestroyImmediate(_material);
+        DestroyImmediate(_previewObject);
+        
+        if (mesh != null)
+        {
+            mesh.Clear();
+            DestroyImmediate(mesh, true);
+        }
         
         _brushSizeSlider.UnregisterValueChangedCallback(OnBrushSizeChanged);
         _fieldSizeField.UnregisterValueChangedCallback(OnFieldSizeChanged);
@@ -91,6 +100,8 @@ public class MeshEditorWindow : EditorWindow
             _blueButton.clicked -= OnClickBlue;
         if (_greenButton != null)
             _greenButton.clicked -= OnClickGreen;
+        if (_generateButton != null)
+            _generateButton.clicked -= GenerateMesh;
     }
     
     [MenuItem("Tools/Mesh Editor")]
@@ -110,12 +121,13 @@ public class MeshEditorWindow : EditorWindow
         VisualElement root = rootVisualElement;
         
         // Instantiate UXML
-        VisualElement labelFromUXML = m_VisualTreeAsset.Instantiate();
-        root.Add(labelFromUXML);
+        VisualElement labelFromUxml = m_VisualTreeAsset.Instantiate();
+        root.Add(labelFromUxml);
 
         _redButton = root.Q<Button>("red");
         _blueButton = root.Q<Button>("blue");
         _greenButton = root.Q<Button>("green");
+        _generateButton = root.Q<Button>("generate");
 
         if (_redButton != null)
             _redButton.clicked += OnClickRed;
@@ -123,6 +135,8 @@ public class MeshEditorWindow : EditorWindow
             _blueButton.clicked += OnClickBlue;
         if (_greenButton != null)
             _greenButton.clicked += OnClickGreen;
+        if (_generateButton != null)
+            _generateButton.clicked += GenerateMesh;
         
         _brushSizeSlider = root.Q<Slider>("brush_size");
         _brushSizeSlider.RegisterValueChangedCallback(OnBrushSizeChanged);
@@ -144,8 +158,11 @@ public class MeshEditorWindow : EditorWindow
         GUI.Box(r, "Preview");
         
         _preview.BeginPreview(r, GUIStyle.none);
-        
-        _preview.DrawMesh(mesh, _meshMatrix, _material, 0);
+
+        if (_meshGenerated)
+        {
+            _preview.DrawMesh(mesh, _meshMatrix, _material, 0);
+        }
 
         UpdateCamera(r);
         HandleMouse(r);
@@ -178,7 +195,7 @@ public class MeshEditorWindow : EditorWindow
             if (e.type == EventType.ScrollWheel)
             {
                 _zoom += e.delta.y * 0.1f;
-                _zoom = Mathf.Clamp(_zoom, 1f, 20f);
+                _zoom = Mathf.Clamp(_zoom, 1f, 200f);
                 e.Use();
             }
         }
@@ -205,7 +222,6 @@ public class MeshEditorWindow : EditorWindow
                 if (e.type == EventType.MouseDown && e.button == 0) {
                     e.Use();
                 }
-                //Debug.Log(p);
             }
             else {
                 _rayCollided = false;
@@ -218,12 +234,11 @@ public class MeshEditorWindow : EditorWindow
     {
         if (_collider == null)
         {
-            GameObject go = new GameObject("PreviewCollider");
-            go.hideFlags = HideFlags.HideAndDontSave;
-            go.transform.position = _meshMatrix.GetPosition();
-            _collider = go.AddComponent<MeshCollider>();
+            _previewObject.transform.position = _meshMatrix.GetPosition();
+            _collider = _previewObject.AddComponent<MeshCollider>();
         }
-
+        
+        _previewObject.transform.position = _meshMatrix.GetPosition();
         _collider.sharedMesh = mesh;
     }
     
@@ -242,6 +257,35 @@ public class MeshEditorWindow : EditorWindow
         return _preview.camera.ScreenPointToRay(screenPoint);
     }
 
+    public void GenerateMesh()
+    {
+        Debug.Log("Generating Mesh");
+        _meshGenerated = true;
+
+        _marchingCubesSection.sectionSize = _fieldSize;
+        _marchingCubesSection.step = _step;
+        _marchingCubesSection.surfaceLevel = _surfaceLevel;
+        _marchingCubesSection.densityFunction = Density.SphereDensity;
+        _marchingCubesSection.sampleSpacePosition = new Vector3(-3f, -3f, -3f);
+        
+        _marchingCubesSection.BuildMesh();
+
+        if (mesh != null)
+        {
+            mesh.Clear();
+            DestroyImmediate(mesh, true);
+        }
+        
+        mesh = _marchingCubesSection.Mesh;
+        
+        // Mesh position based on bounds
+        Vector3 meshPos = -mesh.bounds.center;
+        _meshMatrix = Matrix4x4.TRS(meshPos, Quaternion.identity, Vector3.one);
+
+        UpdateCollider();
+        Debug.Log("Mesh Generated with " + _marchingCubesSection.Mesh.vertices.Length + " vertices");
+    }
+    
     private void OnBrushSizeChanged(ChangeEvent<float> evt) {
         _brushSize = evt.newValue;
     }
