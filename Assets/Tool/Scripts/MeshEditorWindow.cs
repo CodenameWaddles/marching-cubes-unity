@@ -26,14 +26,16 @@ public class MeshEditorWindow : EditorWindow
     private Mesh _rayPointMesh;
     private bool _rayCollided = false;
     private Vector3 _rayCollidedPos = Vector3.zero;
-    private Vector3 _minRayCollidedScale = new Vector3(0.1f, 0.1f, 0.1f);
-    private Vector3 _maxRayCollidedScale = new Vector3(1f, 1f, 1f);
+    private Vector3 _minRayCollidedScale = new Vector3(1f, 1f, 1f);
+    private Vector3 _maxRayCollidedScale = new Vector3(5f, 5f, 5f);
     private Vector3 _rayCollidedScale = new Vector3(0.1f, 0.1f, 0.1f);
     private Matrix4x4 _rayCollidedMatrix;
     private float _brushSize;
+    private DensityField.FieldModificationType _modificationType = DensityField.FieldModificationType.Add;
     
     private Vector2 _rotation = new Vector2(20, 30);
     private float _zoom = 5f;
+    private bool _mouseHeld;
 
     private Slider _brushSizeSlider;
     private Vector3IntField _fieldSizeField;
@@ -44,6 +46,8 @@ public class MeshEditorWindow : EditorWindow
     private Button _blueButton;
     private Button _greenButton;
     private Button _generateButton;
+    private Button _addButton;
+    private Button _subtractButton;
 
     private bool _meshGenerated = false;
     private GameObject _previewObject;
@@ -102,6 +106,10 @@ public class MeshEditorWindow : EditorWindow
             _greenButton.clicked -= OnClickGreen;
         if (_generateButton != null)
             _generateButton.clicked -= GenerateMesh;
+        if (_addButton != null)
+            _addButton.clicked -= OnClickAdd;
+        if (_subtractButton != null)
+            _subtractButton.clicked -= OnClickSubtract;
     }
     
     [MenuItem("Tools/Mesh Editor")]
@@ -128,6 +136,8 @@ public class MeshEditorWindow : EditorWindow
         _blueButton = root.Q<Button>("blue");
         _greenButton = root.Q<Button>("green");
         _generateButton = root.Q<Button>("generate");
+        _addButton = root.Q<Button>("add");
+        _subtractButton = root.Q<Button>("subtract");
 
         if (_redButton != null)
             _redButton.clicked += OnClickRed;
@@ -137,7 +147,11 @@ public class MeshEditorWindow : EditorWindow
             _greenButton.clicked += OnClickGreen;
         if (_generateButton != null)
             _generateButton.clicked += GenerateMesh;
-        
+        if (_addButton != null)
+            _addButton.clicked += OnClickAdd;
+        if (_subtractButton != null)
+            _subtractButton.clicked += OnClickSubtract;
+            
         _brushSizeSlider = root.Q<Slider>("brush_size");
         _brushSizeSlider.RegisterValueChangedCallback(OnBrushSizeChanged);
         _brushSize = _brushSizeSlider.value;
@@ -194,7 +208,7 @@ public class MeshEditorWindow : EditorWindow
 
             if (e.type == EventType.ScrollWheel)
             {
-                _zoom += e.delta.y * 0.1f;
+                _zoom += e.delta.y * 0.3f;
                 _zoom = Mathf.Clamp(_zoom, 1f, 200f);
                 e.Use();
             }
@@ -212,6 +226,15 @@ public class MeshEditorWindow : EditorWindow
         {
             Ray ray = GetRay(r, e.mousePosition);
 
+            if (e.type == EventType.MouseLeaveWindow) {
+                Debug.Log("yes");
+                _mouseHeld = false;
+            }
+            if (e.type == EventType.MouseUp && e.button == 0) {
+                _mouseHeld = false;
+                e.Use();
+            }
+
             if (_collider.Raycast(ray, out RaycastHit hit, 100f))
             {
                 Vector3 p = hit.point;
@@ -220,7 +243,11 @@ public class MeshEditorWindow : EditorWindow
                 _rayCollidedMatrix = Matrix4x4.TRS(_rayCollidedPos, Quaternion.identity, _rayCollidedScale);
                 _rayCollided = true;
                 if (e.type == EventType.MouseDown && e.button == 0) {
+                    _mouseHeld = true;
                     e.Use();
+                }
+                if (_mouseHeld) {
+                    HandleClick(p);
                 }
             }
             else {
@@ -257,6 +284,11 @@ public class MeshEditorWindow : EditorWindow
         return _preview.camera.ScreenPointToRay(screenPoint);
     }
 
+    private void HandleClick(Vector3 point) {
+        _marchingCubesSection.densityField.ModifyFieldSphere(point - _previewObject.transform.position, _modificationType, Mathf.RoundToInt(_rayCollidedScale.x), 0.5f);
+        _marchingCubesSection.UpdateMesh();
+    }
+
     public void GenerateMesh()
     {
         Debug.Log("Generating Mesh");
@@ -266,7 +298,7 @@ public class MeshEditorWindow : EditorWindow
         _marchingCubesSection.step = _step;
         _marchingCubesSection.surfaceLevel = _surfaceLevel;
         _marchingCubesSection.densityFunction = Density.SphereDensity;
-        _marchingCubesSection.sampleSpacePosition = new Vector3(-3f, -3f, -3f);
+        _marchingCubesSection.sampleSpacePosition = new Vector3(-15f, -15f, -15f);
         
         _marchingCubesSection.BuildMesh();
 
@@ -292,6 +324,14 @@ public class MeshEditorWindow : EditorWindow
     
     private void OnFieldSizeChanged(ChangeEvent<Vector3Int> evt) {
         _fieldSize = evt.newValue;
+    }
+
+    public void OnClickAdd() {
+        _modificationType = DensityField.FieldModificationType.Add;
+    }
+    
+    public void OnClickSubtract() {
+        _modificationType = DensityField.FieldModificationType.Subtract;
     }
     
     public void OnClickRed()

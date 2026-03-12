@@ -5,7 +5,8 @@
         <ui:Label text="Mesh generation" style="font-size: 24px;"/>
         <ui:VisualElement style="flex-grow: 1; flex-direction: row;">
             <ui:Button text="Generate mesh" name="generate"/>
-            <ui:Vector3IntField label="Field Size" name="field_size" value="10,10,10" style="flex-direction: column;"/>
+            <ui:Vector3IntField label="Field Size" name="field_size" value="30,30,30" style="flex-direction: column;"/>
+            <ui:EnumField label="Enum" value="Center" type="UnityEngine.TextAlignment, UnityEngine.TextRenderingModule"/>
         </ui:VisualElement>
     </ui:VisualElement>
     <ui:VisualElement name="preview_container" style="flex-grow: 1; flex-direction: row;">
@@ -15,9 +16,13 @@
                 <ui:Button text="Red" name="red" style="height: 41px; width: 81px; background-color: rgb(226, 65, 65); -unity-text-align: middle-center;"/>
                 <ui:Button text="Blue" name="blue" style="height: 41px; width: 81px; background-color: rgb(65, 131, 226);"/>
                 <ui:Button text="Green" name="green" style="height: 41px; width: 81px; background-color: rgb(65, 226, 90);"/>
-                <ui:Slider label="Brush size" value="55" high-value="100" name="brush_size" fill="false" low-value="10" style="width: auto; min-width: auto; flex-direction: column;">
+                <ui:Slider label="Brush size" value="10" high-value="100" name="brush_size" fill="false" low-value="10" style="width: auto; min-width: auto; flex-direction: column;">
                     <ui:VisualElement style="flex-grow: 1;"/>
                 </ui:Slider>
+                <ui:VisualElement style="flex-grow: 1;">
+                    <ui:Button text="Add" name="add"/>
+                    <ui:Button text="Subtract" name="subtract"/>
+                </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

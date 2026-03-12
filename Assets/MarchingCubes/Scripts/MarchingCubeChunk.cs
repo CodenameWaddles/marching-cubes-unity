@@ -45,7 +45,7 @@ namespace MarchingCubes.Scripts
                 {
                     for (int k = 0; k < resolution; k++)
                     {
-                        MarchingCubesUtils.Cube cube = new MarchingCubesUtils.Cube
+                        MarchingCubesUtils.DeprecatedCube cube = new MarchingCubesUtils.DeprecatedCube
                         {
                             Corners = new Vector3[8],
                             Values = new float[8]
@@ -71,7 +71,7 @@ namespace MarchingCubes.Scripts
             }
         }
 
-        void ProcessCube(MarchingCubesUtils.Cube cube)
+        void ProcessCube(MarchingCubesUtils.DeprecatedCube cube)
         {
             int cubeIndex = 0;
             for (int i = 0; i < 8; i++)

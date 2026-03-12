@@ -20,21 +20,35 @@ namespace MarchingCubes.Scripts
         public List<Vector3> Vertices  => _vertices;
         public List<int> Faces => _faces;
         public Mesh Mesh => _mesh;
+        public DensityField densityField = new DensityField();
         
         public void BuildMesh()
         {
             if(_mesh != null)
                 Clear();
             
-            MarchCubes(densityFunction);
+            densityField.GenerateField(sectionSize, sampleSpacePosition, densityFunction, step);
+            
+            MarchCubes();
             _mesh = new Mesh();
             _mesh.indexFormat = IndexFormat.UInt32;
+            _mesh.vertices = _vertices.ToArray();
+            _mesh.triangles = _faces.ToArray();
+            
+            _mesh.RecalculateNormals();
+            _mesh.RecalculateBounds();
+        }
+
+        public void UpdateMesh() {
+            Clear();
+            
+            MarchCubes();
+            
             _mesh.vertices = _vertices.ToArray();
             _mesh.triangles = _faces.ToArray();
 
             _mesh.RecalculateNormals();
             _mesh.RecalculateBounds();
-            
         }
         
         public void Clear()
@@ -44,32 +58,32 @@ namespace MarchingCubes.Scripts
             _mesh.Clear();
         }
 
-        void MarchCubes(Density.DensityFunction function)
+        void MarchCubes()
         {
-            for (int i = 0; i < sectionSize.x; i++)
+            for (int i = 0; i < sectionSize.x - 1; i++)
             {
-                for (int j = 0; j < sectionSize.y; j++)
+                for (int j = 0; j < sectionSize.y - 1; j++)
                 {
-                    for (int k = 0; k < sectionSize.z; k++)
+                    for (int k = 0; k < sectionSize.z - 1; k++)
                     {
                         MarchingCubesUtils.Cube cube = new MarchingCubesUtils.Cube
                         {
-                            Corners = new Vector3[8],
+                            Corners = new Vector3Int[8],
                             Values = new float[8]
                         };
 
-                        cube.Corners[0] = new Vector3(i, j, k) * step;
-                        cube.Corners[1] = new Vector3(i, j, k+1) * step;
-                        cube.Corners[2] = new Vector3(i+1, j, k+1) * step;
-                        cube.Corners[3] = new Vector3(i+1, j, k) * step;
-                        cube.Corners[4] = new Vector3(i, j+1, k) * step;
-                        cube.Corners[5] = new Vector3(i, j+1, k+1) * step;
-                        cube.Corners[6] = new Vector3(i+1, j+1, k+1) * step;
-                        cube.Corners[7] = new Vector3(i+1, j+1, k) * step;
+                        cube.Corners[0] = new Vector3Int(i, j, k);
+                        cube.Corners[1] = new Vector3Int(i, j, k+1);
+                        cube.Corners[2] = new Vector3Int(i+1, j, k+1);
+                        cube.Corners[3] = new Vector3Int(i+1, j, k);
+                        cube.Corners[4] = new Vector3Int(i, j+1, k);
+                        cube.Corners[5] = new Vector3Int(i, j+1, k+1);
+                        cube.Corners[6] = new Vector3Int(i+1, j+1, k+1);
+                        cube.Corners[7] = new Vector3Int(i+1, j+1, k);
 
                         for (int x = 0; x < 8; x++)
                         {
-                            cube.Values[x] = function(sampleSpacePosition + cube.Corners[x]);
+                            cube.Values[x] = densityField.valueField[cube.Corners[x].x, cube.Corners[x].y, cube.Corners[x].z];
                         }
                         
                         ProcessCube(cube);

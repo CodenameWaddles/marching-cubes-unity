@@ -13,6 +13,12 @@ namespace MarchingCubes.Scripts
         public struct Cube
         {
             public float[] Values;
+            public Vector3Int[] Corners;
+        }
+        
+        public struct DeprecatedCube
+        {
+            public float[] Values;
             public Vector3[] Corners;
         }
         
@@ -28,6 +34,10 @@ namespace MarchingCubes.Scripts
             
             float abc = ab + bc + ca + ba + cb + ac;
             return abc/6f;
+        }
+        
+        public static float SphereDistance(Vector3 spherePos, Vector3 point, float radius) {
+            return Vector3.Distance(spherePos, point) - radius;
         }
     }
 }
