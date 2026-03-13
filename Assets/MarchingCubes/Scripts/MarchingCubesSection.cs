@@ -11,6 +11,7 @@ namespace MarchingCubes.Scripts
         public float surfaceLevel = 0f;
         public Vector3 sampleSpacePosition = Vector3.zero;
         public Density.DensityFunction densityFunction = Density.PlaneDensity;
+        public bool inverseMesh = false;
         
         private List<Vector3> _vertices = new List<Vector3>();
         private List<int> _faces = new List<int>();
@@ -98,7 +99,11 @@ namespace MarchingCubes.Scripts
             int cubeIndex = 0;
             for (int i = 0; i < 8; i++)
             {
-                if (cube.Values[i] < surfaceLevel)
+                if (!inverseMesh && cube.Values[i] < surfaceLevel)
+                {
+                    cubeIndex |= 1 << i;
+                }
+                if (inverseMesh && cube.Values[i] > surfaceLevel)
                 {
                     cubeIndex |= 1 << i;
                 }

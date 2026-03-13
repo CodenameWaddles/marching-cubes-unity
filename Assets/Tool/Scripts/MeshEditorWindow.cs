@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using MarchingCubes.Scripts;
 using NUnit.Framework;
+using Tool.Scripts;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -12,8 +13,10 @@ public class MeshEditorWindow : EditorWindow
     [SerializeField] private Mesh mesh;
     [SerializeField] private Material brushMaterial;
     [SerializeField] private int minVertexCount = 100;
-    [SerializeField] private string meshSaveLocation = "Assets/Tool/Save";
+    [SerializeField] private string objectSaveLocation = "Assets/Tool/Save";
     [SerializeField] private string meshSaveName = "SavedMesh";
+    
+    private DensityFieldMeshObject  densityFieldMeshObject;
 
     private float[][][] _valueField;
     private Vector3Int _fieldSize;
@@ -57,6 +60,8 @@ public class MeshEditorWindow : EditorWindow
     private Slider _brushSizeSlider;
     private Slider _brushStrengthSlider;
     private Slider _surfaceLevelSlider;
+
+    private Toggle _invertToggle;
     
     private Label _nbVerticesLabel;
     private Label _nbFacesLabel;
@@ -173,6 +178,8 @@ public class MeshEditorWindow : EditorWindow
             _subtractButton.clicked += OnClickSubtract;
         if (_saveButton != null)
             _saveButton.clicked += OnClickSave;
+        
+        _invertToggle = root.Q<Toggle>("invert");
             
         _brushSizeSlider = root.Q<Slider>("brush_size");
         _brushSizeSlider.RegisterValueChangedCallback(OnBrushSizeChanged);
@@ -348,6 +355,7 @@ public class MeshEditorWindow : EditorWindow
         _marchingCubesSection.surfaceLevel = _surfaceLevel;
         _marchingCubesSection.densityFunction = _densityFunction;
         _marchingCubesSection.sampleSpacePosition = new Vector3(-15f, -15f, -15f);
+        _marchingCubesSection.inverseMesh = _invertToggle.value;
         
         _marchingCubesSection.BuildMesh();
 
@@ -402,16 +410,18 @@ public class MeshEditorWindow : EditorWindow
 
     public void OnClickSave()
     {
-        Debug.Log("Saving mesh as asset...");
+        densityFieldMeshObject = CreateInstance<DensityFieldMeshObject>();
+        AssetDatabase.CreateAsset(densityFieldMeshObject, objectSaveLocation + "/DensityFieldMeshObject.asset");
+
+        densityFieldMeshObject.Mesh = mesh;
+        densityFieldMeshObject.DensityField = _marchingCubesSection.densityField;
+        densityFieldMeshObject.MeshSaveName = meshSaveName;
+        densityFieldMeshObject.MeshSaveLocation = objectSaveLocation;
+
+        densityFieldMeshObject.SaveMesh();
         
-        string path = meshSaveLocation + "/" + meshSaveName + ".asset";
-        
-        if (path.Length > 0)
-        {
-            AssetDatabase.CreateAsset(Instantiate(mesh), path);
-            AssetDatabase.SaveAssets();
-        }
-        Debug.Log("Saved mesh as asset !");
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
     }
 
     public void OnDensityTypeChanged(ChangeEvent<string> evt)

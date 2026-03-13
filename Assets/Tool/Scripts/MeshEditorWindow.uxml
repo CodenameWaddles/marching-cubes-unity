@@ -4,7 +4,10 @@
         <ui:Label text="Marching cubes mesh editor" name="title" class="custom-label" style="color: rgb(255, 255, 255); font-size: 36px; flex-wrap: wrap;"/>
         <ui:VisualElement name="mesh_settings" style="flex-grow: 1; flex-direction: row; border-top-width: 10px; border-bottom-width: 10px; border-left-width: 4px; flex-wrap: wrap;">
             <ui:Button text="Generate mesh" name="generate" style="border-left-width: 1px; border-right-width: 1px; max-height: 80px; align-self: center; min-height: 50px;"/>
-            <ui:Vector3IntField label="Field Size" name="field_size" value="30,30,30" style="flex-direction: column; border-left-width: 5px; border-right-width: 5px; max-height: 40px; align-items: stretch; align-self: center; justify-content: flex-start;"/>
+            <ui:VisualElement style="flex-grow: 1; padding-left: 5px; padding-right: 5px; max-width: 200px; align-items: center;">
+                <ui:Vector3IntField label="Field Size" name="field_size" value="30,30,30" style="flex-direction: column; border-left-width: 5px; border-right-width: 5px; max-height: 40px; align-items: stretch; align-self: center; justify-content: flex-start;"/>
+                <ui:Toggle label="Invert mesh" name="invert" style="padding-top: 2px; padding-bottom: 2px;"/>
+            </ui:VisualElement>
             <ui:VisualElement style="flex-grow: 1; border-left-width: 5px; border-right-width: 5px;">
                 <ui:DropdownField label="Density function type" choices="Flat,Noise,Sphere" enabled="true" name="density_type" style="max-width: 300px; flex-direction: column;"/>
                 <ui:Slider label="Surface level" value="-20" high-value="20" name="surface_level" fill="false" direction="Horizontal" style="max-width: 300px; border-top-width: 5px; border-bottom-width: 5px;"/>
