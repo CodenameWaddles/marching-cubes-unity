@@ -31,6 +31,7 @@ namespace MarchingCubes.Scripts
             
             MarchCubes();
             _mesh = new Mesh();
+            _mesh.MarkDynamic();
             _mesh.indexFormat = IndexFormat.UInt32;
             _mesh.vertices = _vertices.ToArray();
             _mesh.triangles = _faces.ToArray();

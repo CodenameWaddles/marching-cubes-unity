@@ -1,9 +1,18 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace MarchingCubes.Scripts
 {
     public static class Density
     {
+        public static Dictionary<string, DensityFunction>
+            DensityFunctions = new Dictionary<string, DensityFunction>
+            {
+                {"Sphere", SphereDensity},
+                {"Flat", PlaneDensity},
+                {"Noise", NoiseDensity},
+            };
+        
         public delegate float DensityFunction(Vector3 position);
 
         public static float PlaneDensity(Vector3 position)
@@ -12,7 +21,7 @@ namespace MarchingCubes.Scripts
             return density;
         }
         
-        public static float TestDensity(Vector3 position) {
+        public static float NoiseDensity(Vector3 position) {
             //float density = position.y;
             float density = 0;
             density += MarchingCubesUtils.ThreeDNoise(position * 4.05f) * 0.25f;

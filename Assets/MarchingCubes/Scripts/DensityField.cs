@@ -5,12 +5,14 @@ namespace MarchingCubes.Scripts
     public class DensityField
     {
         public enum FieldModificationType {
-            Add = -1,
-            Subtract = 1
+            Add = 1,
+            Subtract = -1
         }
         
         public float[,,] valueField;
         public float step;
+
+        public float threshold = 0.05f;
 
         public void GenerateField(Vector3Int sectionSize, Vector3 sampleSpacePosition, Density.DensityFunction densityFunction, float stepValue)
         {
@@ -27,7 +29,7 @@ namespace MarchingCubes.Scripts
             }
         }
 
-        public void ModifyFieldSphere(Vector3 point, FieldModificationType modificationType, float size, float strength) {
+        public void ModifyFieldSphere(Vector3 point, FieldModificationType modificationType, float size, float strength, float surfaceLevel) {
             for (float x = -size; x < size; x++) {
                 for (float y = -size; y < size; y++) {
                     for (float z = -size; z < size; z++) {
@@ -42,7 +44,7 @@ namespace MarchingCubes.Scripts
                             
                             if (valueField.GetLength(0) > xj && valueField.GetLength(1) > yj && valueField.GetLength(2) > zj && xj >= 0 && yj >= 0 && zj >= 0)
                             {
-                                valueField[xj, yj, zj] += (int)modificationType * strength;
+                                valueField[xj, yj, zj] += (int)modificationType * distance * strength;
                             }
                         }
                     }
