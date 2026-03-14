@@ -39,5 +39,13 @@ namespace MarchingCubes.Scripts
         public static float SphereDistance(Vector3 spherePos, Vector3 point, float radius) {
             return Vector3.Distance(spherePos, point) - radius;
         }
+        
+        public static void Fill3D(int[,,] array, int value)
+        {
+            for (int x = 0; x < array.GetLength(0); x++)
+            for (int y = 0; y < array.GetLength(1); y++)
+            for (int z = 0; z < array.GetLength(2); z++)
+                array[x, y, z] = value;
+        }
     }
 }
